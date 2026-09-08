@@ -27,6 +27,7 @@ const Categoria = lazy(() => import('@/pages/Categoria'))
 const Geografico = lazy(() => import('@/pages/Geografico'))
 const DadosDetalhados = lazy(() => import('@/pages/DadosDetalhados'))
 const Administracao = lazy(() => import('@/pages/Administracao'))
+const CadastroProdutos = lazy(() => import('@/pages/CadastroProdutos'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,10 @@ export default function App() {
               <Route path="/categoria" element={<Categoria />} />
               <Route path="/geografico" element={<Geografico />} />
               <Route path="/dados" element={<DadosDetalhados />} />
+
+              {/* Gestao aberta a qualquer acesso: pedir cadastro de produto
+                  nao e uma acao privilegiada, e todo cliente precisa dela. */}
+              <Route path="/cadastro-produtos" element={<CadastroProdutos />} />
 
               <Route element={<ExigeAdmin />}>
                 <Route path="/admin" element={<Administracao />} />

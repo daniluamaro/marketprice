@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Marca } from '@/components/Marca'
+import { linkWhatsapp } from '@/lib/whatsapp'
 
 /**
  * Tela de login.
@@ -15,12 +16,6 @@ import { Marca } from '@/components/Marca'
  * e-mail transacional e nao existe auto-cadastro. Sao dois links de contato,
  * nao dois fluxos de autenticacao.
  */
-
-const WHATSAPP = '5573998417554'
-
-function linkWhatsapp(texto: string): string {
-  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`
-}
 
 const LINK_SENHA = linkWhatsapp(
   'Olá! Perdi o acesso à minha conta do Market Price e preciso redefinir minha senha.',

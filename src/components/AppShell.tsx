@@ -8,6 +8,7 @@ import {
   LogOut,
   MapPin,
   Menu,
+  PackagePlus,
   Ruler,
   Table2,
   Tags,
@@ -40,6 +41,9 @@ const RELATORIOS: ItemNav[] = [
 ]
 
 const GESTAO: ItemNav[] = [
+  // Sem `soAdmin`: pedir a inclusao de um produto na coleta e necessidade de
+  // todo cliente, nao acao privilegiada.
+  { to: '/cadastro-produtos', rotulo: 'Cadastro de Produtos', Icone: PackagePlus },
   { to: '/admin', rotulo: 'Administração', Icone: Users, soAdmin: true },
 ]
 
@@ -86,7 +90,7 @@ export function AppShell() {
     <>
       <div>
         <Marca />
-        <p className="mb-7 ml-11 mt-0.5 text-[10.5px] uppercase tracking-[1.2px] text-ink-3">
+        <p className="mb-6 ml-11 mt-0.5 text-[10.5px] uppercase tracking-[1.2px] text-ink-3">
           Inteligência de Preços
         </p>
       </div>
@@ -111,15 +115,36 @@ export function AppShell() {
         )}
       </nav>
 
-      <div className="mt-4 border-t border-line-soft pt-4">
-        <div className="rounded-chip border border-line bg-elevated px-3 py-2.5">
+      {/*
+        Rodape enxuto: a caixa com borda que envolvia empresa + CNPJ saiu. Ela
+        custava altura (borda, respiro interno e margem propria) e era essa
+        altura que empurrava a navegacao para o scroll — com 10 itens de menu, o
+        rodape disputava espaco com o proprio menu.
+
+        Sem a moldura, os tres dados viram um bloco unico de identidade:
+        empresa (dona do CNPJ), e-mail (quem esta logado) e o CNPJ formatado.
+        A borda superior do rodape ja separa esta area da navegacao; a caixa era
+        uma segunda separacao em cima da primeira.
+      */}
+      <div className="mt-4 shrink-0 border-t border-line-soft pt-4">
+        <button
+          onClick={() => void sair()}
+          className="flex w-full items-center justify-center gap-2 rounded-chip border border-line bg-elevated px-3 py-2.5 text-[12.5px] text-ink-2 transition-colors duration-150 hover:border-gold/30 hover:text-ink focus-visible:outline-2 focus-visible:outline-gold-bright focus-visible:outline-offset-2"
+        >
+          <LogOut className="size-3.5" aria-hidden />
+          Sair
+        </button>
+
+        <div className="mt-3 px-1">
           <p className="truncate text-[12.5px] font-semibold text-ink">
-            {perfil?.nome_contratante ?? 'Empresa'}
+            {perfil?.nome_empresa ?? 'Empresa'}
           </p>
+          <p className="truncate text-[11px] text-ink-3">{perfil?.email ?? ''}</p>
           <p className="num mt-0.5 text-[11px] text-ink-2">
             {fmtCnpj(perfil?.cnpj_contratante)}
           </p>
         </div>
+
         <div className="mt-2.5 flex items-center gap-1.5 text-[10px] tracking-[0.3px] text-ink-3">
           <span className="size-1.5 rounded-full bg-success shadow-[0_0_6px_var(--color-success)]" />
           Fonte: SEFAZ/BA · NFC-e
@@ -131,7 +156,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[284px_1fr]">
       {/* Sidebar desktop */}
-      <aside className="sticky top-0 hidden h-screen flex-col border-r border-line-soft bg-panel px-5 py-7 lg:flex">
+      <aside className="sticky top-0 hidden h-screen flex-col border-r border-line-soft bg-panel px-5 py-6 lg:flex">
         {barraLateral}
       </aside>
 
@@ -143,7 +168,7 @@ export function AppShell() {
             onClick={() => setMenuAberto(false)}
             aria-label="Fechar menu"
           />
-          <aside className="relative flex h-full w-67.5 flex-col border-r border-line-soft bg-panel px-5 py-7">
+          <aside className="relative flex h-full w-67.5 flex-col border-r border-line-soft bg-panel px-5 py-6">
             <button
               onClick={() => setMenuAberto(false)}
               className="absolute right-3 top-3 rounded-chip p-1.5 text-ink-3 hover:bg-hover hover:text-ink"
@@ -158,36 +183,21 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-col">
         {/*
-          A faixa do topo sangra de ponta a ponta (a borda inferior precisa
-          cruzar a tela inteira), mas o CONTEUDO dela usa o mesmo contêiner de
-          1280px do <main>. Sem isso o botao "Sair" ficava colado na borda da
-          janela, adiantado em relacao aos cartoes logo abaixo.
+          A faixa do topo saiu: identidade e "Sair" foram para o rodape da
+          barra lateral, e o conteudo passou a comecar no alto da tela.
+
+          Sobrou APENAS a versao mobile (`lg:hidden`), e nao por capricho: no
+          celular a barra lateral e uma gaveta, e este botao era o unico jeito
+          de abri-la. Sem ele, o telefone ficaria sem navegacao nenhuma.
         */}
-        <header className="sticky top-0 z-30 border-b border-line-soft bg-base/85 px-5 py-3 backdrop-blur-md lg:px-8">
-          <div className="mx-auto flex max-w-7xl items-center gap-3">
-            <button
-              onClick={() => setMenuAberto(true)}
-              className="rounded-chip p-2 text-ink-2 hover:bg-hover hover:text-ink lg:hidden"
-              aria-label="Abrir menu"
-            >
-              <Menu className="size-4.5" aria-hidden />
-            </button>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-ink">
-                {perfil?.nome_contratante ?? '—'}
-              </p>
-              <p className="truncate text-[11px] text-ink-3">{perfil?.email ?? ''}</p>
-            </div>
-
-            <button
-              onClick={() => void sair()}
-              className="flex items-center gap-2 rounded-chip border border-line bg-elevated px-3 py-2 text-[12.5px] text-ink-2 transition-colors hover:border-gold/30 hover:text-ink"
-            >
-              <LogOut className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
-          </div>
+        <header className="sticky top-0 z-30 border-b border-line-soft bg-base/85 px-5 py-2.5 backdrop-blur-md lg:hidden">
+          <button
+            onClick={() => setMenuAberto(true)}
+            className="rounded-chip p-2 text-ink-2 hover:bg-hover hover:text-ink"
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-4.5" aria-hidden />
+          </button>
         </header>
 
         <main className="min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-7">
