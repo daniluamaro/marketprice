@@ -30,12 +30,21 @@ const CHAVE_ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const CHAVE_SERVICO = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 type Acao =
+  | 'estado_seguranca'
+  | 'definir_senha_admin'
+  | 'desbloquear'
   | 'listar'
   | 'criar'
   | 'atualizar'
   | 'resetar_senha'
   | 'alternar_ativo'
   | 'excluir'
+
+/** Acoes que NAO exigem a senha de administracao. Tudo o mais exige. */
+const ACOES_SEM_SENHA: ReadonlySet<string> = new Set([
+  'estado_seguranca',
+  'definir_senha_admin', // valida a senha ATUAL por dentro, quando ja existe
+])
 
 interface Corpo {
   action: Acao
@@ -46,7 +55,12 @@ interface Corpo {
   role?: 'user' | 'admin'
   plano?: string | null
   ativo?: boolean
+  /** Senha de administracao (§ segunda barreira). Nunca e persistida. */
+  senha_admin?: string
+  nova_senha_admin?: string
 }
+
+const MIN_SENHA_ADMIN = 10
 
 function json(dados: unknown, status = 200): Response {
   return new Response(JSON.stringify(dados), {
@@ -76,6 +90,33 @@ function gerarSenhaProvisoria(): string {
 
 function apenasDigitos(valor: string): string {
   return valor.replace(/\D/g, '')
+}
+
+/** SHA-256 em hexadecimal. A senha em si nunca e gravada em lugar nenhum. */
+async function sha256(texto: string): Promise<string> {
+  const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto))
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/**
+ * Comparacao em tempo constante.
+ *
+ * `a === b` em string sai no primeiro caractere diferente, e essa diferenca de
+ * tempo — medida em muitas tentativas — revela o prefixo correto. Como aqui os
+ * dois lados sao hashes de tamanho fixo, o XOR acumulado percorre tudo sempre.
+ */
+function iguaisEmTempoConstante(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diferenca = 0
+  for (let i = 0; i < a.length; i++) diferenca |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diferenca === 0
+}
+
+/** Atraso fixo apos senha errada, para encarecer tentativa e erro. */
+function esperar(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -124,8 +165,81 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const { action } = corpo
 
+  // ---- 3. a SEGUNDA barreira: senha de administracao ---------------------
+  // Ser admin autenticado nao basta. Esta verificacao roda AQUI, no servidor, e
+  // nao na tela: o JavaScript do navegador e publico e qualquer pessoa remove
+  // uma checagem feita la. Sem passar por este bloco, nenhuma acao privilegiada
+  // acontece — nem chamando a funcao direto, fora da interface.
+  const { data: seguranca, error: erroSeguranca } = await admin
+    .from('admin_seguranca')
+    .select('senha_hash')
+    .eq('id', 1)
+    .maybeSingle()
+
+  if (erroSeguranca) return erro('Falha ao verificar a senha de administração.', 500)
+  const hashGravado: string | null = seguranca?.senha_hash ?? null
+
+  async function senhaConfere(): Promise<boolean> {
+    if (hashGravado === null) return false
+    const enviada = corpo.senha_admin ?? ''
+    if (enviada === '') return false
+    return iguaisEmTempoConstante(await sha256(enviada), hashGravado)
+  }
+
+  if (!ACOES_SEM_SENHA.has(action)) {
+    // 428 (Precondition Required) e nao 403: o cliente precisa saber que o
+    // caso e "ainda nao configurada", nao "voce errou a senha".
+    if (hashGravado === null) {
+      return erro('Senha de administração ainda não foi configurada.', 428)
+    }
+    if (!(await senhaConfere())) {
+      await esperar(400)
+      return erro('Senha de administração inválida.', 403)
+    }
+  }
+
   try {
     switch (action) {
+      // ---------------------------------------------------------------
+      // Diz a tela se ja existe senha configurada, para ela decidir entre
+      // pedir a senha ou oferecer a definicao inicial. Nao revela nada:
+      // so chega aqui quem ja provou ser admin ativo.
+      case 'estado_seguranca':
+        return json({ configurada: hashGravado !== null })
+
+      // ---------------------------------------------------------------
+      case 'desbloquear':
+        // A senha ja foi conferida no bloco acima; chegar aqui e a prova.
+        return json({ ok: true })
+
+      // ---------------------------------------------------------------
+      case 'definir_senha_admin': {
+        const nova = corpo.nova_senha_admin ?? ''
+
+        // Rotacao exige a senha atual. Na PRIMEIRA definicao nao ha o que
+        // exigir — e por isso ela deve ser feita imediatamente apos o deploy.
+        if (hashGravado !== null && !(await senhaConfere())) {
+          await esperar(400)
+          return erro('Senha de administração atual inválida.', 403)
+        }
+
+        if (nova.length < MIN_SENHA_ADMIN) {
+          return erro(`A senha deve ter ao menos ${MIN_SENHA_ADMIN} caracteres.`, 400)
+        }
+        if (corpo.senha_admin !== undefined && nova === corpo.senha_admin) {
+          return erro('A nova senha deve ser diferente da atual.', 400)
+        }
+
+        const { error } = await admin.from('admin_seguranca').upsert({
+          id: 1,
+          senha_hash: await sha256(nova),
+          atualizado_em: new Date().toISOString(),
+          atualizado_por: dadosUsuario.user.id,
+        })
+        if (error) return erro('Falha ao gravar a senha de administração.', 500)
+        return json({ ok: true, primeira_definicao: hashGravado === null })
+      }
+
       // ---------------------------------------------------------------
       case 'listar': {
         const { data, error } = await admin

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, KeyRound, Pencil, Plus, Power, X } from 'lucide-react'
+import { Check, Copy, KeyRound, Lock, Pencil, Plus, Power, X } from 'lucide-react'
 import {
   alternarAtivo,
   atualizarUsuario,
@@ -9,6 +9,8 @@ import {
   resetarSenha,
   type UsuarioAdmin,
 } from '@/lib/adminUsers'
+import { TravaAdmin } from '@/components/TravaAdmin'
+import { useAdminSessao } from '@/store/adminSessao'
 import { useAuth, type Papel } from '@/store/auth'
 import { fmtCnpj, fmtData, fmtPlano } from '@/lib/format'
 import { Button } from '@/components/ui/button'
@@ -329,8 +331,20 @@ function FormularioEdicao({
 }
 
 export default function Administracao() {
+  const desbloqueada = useAdminSessao((s) => s.desbloqueada)
+
+  // A trava vem ANTES de qualquer consulta: sem a senha, nem a listagem de
+  // acessos deve ser buscada. Um `return` aqui tambem garante que os hooks
+  // abaixo (que dependem da senha) nunca rodem sem ela.
+  if (!desbloqueada) return <TravaAdmin />
+
+  return <PainelAdministracao />
+}
+
+function PainelAdministracao() {
   const queryClient = useQueryClient()
   const meuId = useAuth((s) => s.perfil?.id ?? null)
+  const bloquear = useAdminSessao((s) => s.bloquear)
 
   const [criando, setCriando] = useState(false)
   const [editando, setEditando] = useState<UsuarioAdmin | null>(null)
@@ -364,12 +378,33 @@ export default function Administracao() {
       titulo="Administração de acessos"
       descricao="Cada acesso enxerga apenas os dados do próprio CNPJ. Desativar um acesso revoga a entrada imediatamente, sem excluir o histórico."
       acessorio={
-        criando ? undefined : (
-          <Button onClick={() => setCriando(true)}>
-            <Plus className="size-4" aria-hidden />
-            Novo acesso
+        <div className="flex items-center gap-2">
+          {/*
+            "Travar tela", e nao "Bloquear": este botao fecha a AREA de
+            administracao e volta a pedir a senha — nao tem nada a ver com
+            suspender um cliente, que e o botao de ativar/desativar de cada
+            linha. O nome anterior induzia exatamente a essa troca.
+          */}
+          <Button
+            variant="outline"
+            title="Fecha esta área e volta a pedir a senha de administração"
+            onClick={() => {
+              // Descarta tambem o que ja foi lido com a senha, para os dados
+              // nao continuarem em tela depois de travar.
+              queryClient.removeQueries({ queryKey: ['admin-usuarios'] })
+              bloquear()
+            }}
+          >
+            <Lock className="size-4" aria-hidden />
+            Travar tela
           </Button>
-        )
+          {!criando && (
+            <Button onClick={() => setCriando(true)}>
+              <Plus className="size-4" aria-hidden />
+              Novo acesso
+            </Button>
+          )}
+        </div>
       }
     >
       <div>
