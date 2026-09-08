@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Sem "baseUrl": ele foi preterido no TypeScript 6.0 e para de funcionar no
+    // 7.0. Desde o TS 4.4 o "paths" funciona sozinho, e cada entrada e resolvida
+    // em relacao a ESTE arquivo — por isso o prefixo "./" e obrigatorio aqui.
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

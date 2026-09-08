@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   Design tokens — CLAUDE.md §10.2, calibrados pelo mockup de referencia.
+   Definidos uma vez aqui e consumidos como utilitarios do Tailwind
+   (bg-panel, text-ink-2, border-line, font-mono, ...). Nenhuma tela deve
+   escrever um valor de cor literal.
+   ========================================================================= */
+@theme {
+  /* superficies, em camadas: base -> panel -> elevated -> hover */
+  --color-base: #080b14;
+  --color-panel: #0f1524;
+  --color-elevated: #141b2e;
+  --color-hover: #1a2237;
+  --color-line: #212a42;
+  --color-line-soft: #1a2237;
+
+  /* acento de marca — usado com parcimonia */
+  --color-gold: #d4af37;
+  --color-gold-bright: #f0cc5c;
+  --color-gold-dim: #8a7328;
+
+  /* texto — clareados para leitura confortavel sobre o azul escuro.
+     ink-2 e ink-3 eram #8D96B0 e #5C6480: o terciario ficava perto do limite
+     de legibilidade em corpo pequeno. */
+  --color-ink: #eef1f8;
+  --color-ink-2: #aab3ca;
+  --color-ink-3: #8790a8;
+
+  /* semantico — a versao cheia e para preenchimento (barras, fundos, bordas);
+     a "-txt" e a unica que deve ser usada em TEXTO. Vermelho puro sobre fundo
+     escuro cansa e perde legibilidade; o claro le sem esforco. */
+  --color-success: #3ddc97;
+  --color-success-txt: #7fecc0;
+  --color-danger: #ff6b6b;
+  --color-danger-txt: #ff9e9e;
+  --color-warning: #f0b429;
+  --color-warning-txt: #f8ce6a;
+
+  /* escala de raio: badge -> chip -> card -> panel. Sem valores literais nas telas. */
+  --radius-badge: 5px;
+  --radius-chip: 8px;
+  --radius-card: 10px;
+  --radius-panel: 14px;
+
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse 1200px 800px at 20% -10%, #131b30 0%, var(--color-base) 55%)
+      var(--color-base);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--color-gold);
+    color: #0a0d14;
+  }
+
+  /*
+   * Cursor de acao. O preflight do Tailwind v4 zera o `cursor: pointer` que os
+   * navegadores davam a <button>, entao todo botao do app ficava com a seta
+   * comum e nao se anunciava como clicavel. A regra vive aqui, na base, para
+   * valer em qualquer botao — os do design system e os soltos (chips de filtro,
+   * mostrar/ocultar senha, itens de lista).
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Foco visivel e consistente (acessibilidade — §10.7) */
+  :focus-visible {
+    outline: 2px solid var(--color-gold-bright);
+    outline-offset: 2px;
+  }
+
+  /* Todo numero em mono e com algarismos de largura fixa (§10.3) */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Quem pediu menos movimento no sistema operacional recebe menos movimento. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

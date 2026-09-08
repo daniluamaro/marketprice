@@ -1,0 +1,19 @@
+# Dependencias e saida de build — sempre reconstruidas a partir do codigo.
+node_modules/
+dist/
+
+# Cache incremental do TypeScript. Muda a cada compilacao e nao serve para
+# ninguem alem desta maquina; versionado, so geraria conflito em todo commit.
+*.tsbuildinfo
+
+# Configuracao de ambiente. Os valores VITE_* sao publicos por design (eles
+# terminam embutidos no bundle), mas o arquivo e por maquina e e justamente
+# onde um segredo acabaria caindo por descuido.
+.env.local
+.env*
+
+# Configuracao do servidor MCP: NAO faz parte da aplicacao. Contem um token
+# pessoal (sbp_...) com poder de administracao sobre o projeto Supabase.
+.mcp.json
+
+.DS_Store
