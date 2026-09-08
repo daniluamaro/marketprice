@@ -51,6 +51,9 @@ interface Corpo {
   id?: string
   email?: string
   cnpj_contratante?: string
+  /** Empresa dona do CNPJ. */
+  nome_empresa?: string | null
+  /** Pessoa que usa o acesso. */
   nome_contratante?: string | null
   role?: 'user' | 'admin'
   plano?: string | null
@@ -245,7 +248,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const { data, error } = await admin
           .from('profiles')
           .select(
-            'id, email, cnpj_contratante, nome_contratante, role, ativo, plano, senha_provisoria, created_at',
+            'id, email, cnpj_contratante, nome_empresa, nome_contratante, role, ativo, plano, senha_provisoria, created_at',
           )
           .order('created_at', { ascending: true })
 
@@ -283,6 +286,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           id: criado.user.id,
           email,
           cnpj_contratante: cnpj,
+          nome_empresa: corpo.nome_empresa ?? null,
           nome_contratante: corpo.nome_contratante ?? null,
           role: corpo.role === 'admin' ? 'admin' : 'user',
           plano: corpo.plano ?? 'padrao',
@@ -311,6 +315,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           if (cnpj.length !== 14) return erro('CNPJ deve ter 14 dígitos.', 400)
           campos.cnpj_contratante = cnpj
         }
+        if (corpo.nome_empresa !== undefined) campos.nome_empresa = corpo.nome_empresa
         if (corpo.nome_contratante !== undefined)
           campos.nome_contratante = corpo.nome_contratante
         if (corpo.role !== undefined) campos.role = corpo.role

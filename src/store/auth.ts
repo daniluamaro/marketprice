@@ -8,6 +8,9 @@ export interface Perfil {
   id: string
   email: string
   cnpj_contratante: string
+  /** A EMPRESA dona do CNPJ. E ela que identifica o tenant na interface. */
+  nome_empresa: string | null
+  /** A PESSOA que usa este acesso. Aparece ao lado do e-mail, no topo. */
   nome_contratante: string | null
   role: Papel
   ativo: boolean
@@ -35,7 +38,7 @@ interface AuthStore {
 }
 
 const COLUNAS_PERFIL =
-  'id, email, cnpj_contratante, nome_contratante, role, ativo, plano, senha_provisoria'
+  'id, email, cnpj_contratante, nome_empresa, nome_contratante, role, ativo, plano, senha_provisoria'
 
 async function buscarPerfil(
   userId: string,

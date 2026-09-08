@@ -132,7 +132,9 @@ function Destaque({
 export default function VisaoGeral() {
   const estreita = useTelaEstreita()
   const filtros = useFiltros()
-  const nomeContratante = useAuth((s) => s.perfil?.nome_contratante ?? null)
+  // Contexto do cabecalho e a EMPRESA, nao a pessoa: o recorte de dados
+  // pertence ao CNPJ.
+  const nomeContratante = useAuth((s) => s.perfil?.nome_empresa ?? null)
   const chave = chaveCache(filtros)
 
   const f: Filtros = filtros

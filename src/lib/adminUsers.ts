@@ -19,6 +19,9 @@ export interface UsuarioAdmin {
   id: string
   email: string
   cnpj_contratante: string
+  /** Empresa dona do CNPJ. */
+  nome_empresa: string | null
+  /** Pessoa que usa o acesso. */
   nome_contratante: string | null
   role: Papel
   ativo: boolean
@@ -105,6 +108,7 @@ export async function definirSenhaAdmin(
 export function criarUsuario(dados: {
   email: string
   cnpj_contratante: string
+  nome_empresa: string | null
   nome_contratante: string | null
   role: Papel
   plano: string | null
@@ -115,6 +119,7 @@ export function criarUsuario(dados: {
 export function atualizarUsuario(dados: {
   id: string
   cnpj_contratante?: string
+  nome_empresa?: string | null
   nome_contratante?: string | null
   role?: Papel
   plano?: string | null

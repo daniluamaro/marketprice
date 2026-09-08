@@ -91,6 +91,7 @@ function FormularioNovo({
   const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [cnpj, setCnpj] = useState('')
+  const [empresa, setEmpresa] = useState('')
   const [nome, setNome] = useState('')
   const [plano, setPlano] = useState('padrao')
   const [papel, setPapel] = useState<'user' | 'admin'>('user')
@@ -103,8 +104,9 @@ function FormularioNovo({
     },
   })
 
-  const digitosCnpj = cnpj.replace(/\D/g, '')
-  const valido = email.trim() !== '' && digitosCnpj.length === 14
+  const digitosCnpj = cnpj
+  const valido =
+    email.trim() !== '' && digitosCnpj.length === 14 && empresa.trim() !== ''
 
   function enviar(e: FormEvent) {
     e.preventDefault()
@@ -112,6 +114,7 @@ function FormularioNovo({
     mutacao.mutate({
       email: email.trim(),
       cnpj_contratante: digitosCnpj,
+      nome_empresa: empresa.trim(),
       nome_contratante: nome.trim() === '' ? null : nome.trim(),
       role: papel,
       plano,
@@ -143,8 +146,12 @@ function FormularioNovo({
             id="novo-cnpj"
             inputMode="numeric"
             required
+            maxLength={14}
             value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+            // Filtra na digitacao, nao no envio: ponto, barra, traco e letra
+            // simplesmente nao entram no campo. Colar "30.580.282/0001-04"
+            // continua funcionando — a mascara e removida na hora.
+            onChange={(e) => setCnpj(e.target.value.replace(/\D/g, '').slice(0, 14))}
             placeholder="00000000000000"
             className="num"
           />
@@ -156,12 +163,23 @@ function FormularioNovo({
         </div>
 
         <div className="flex flex-col gap-2">
+          <Label htmlFor="novo-empresa">Empresa contratante</Label>
+          <Input
+            id="novo-empresa"
+            required
+            value={empresa}
+            onChange={(e) => setEmpresa(e.target.value)}
+            placeholder="Razão social ou nome fantasia"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
           <Label htmlFor="novo-nome">Nome do contratante</Label>
           <Input
             id="novo-nome"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Nome da empresa"
+            placeholder="Pessoa responsável pelo acesso"
           />
         </div>
 
@@ -223,6 +241,7 @@ function FormularioEdicao({
   const meuId = useAuth((s) => s.perfil?.id ?? null)
 
   const [cnpj, setCnpj] = useState(usuario.cnpj_contratante)
+  const [empresa, setEmpresa] = useState(usuario.nome_empresa ?? '')
   const [nome, setNome] = useState(usuario.nome_contratante ?? '')
   const [plano, setPlano] = useState(usuario.plano ?? 'padrao')
   const [papel, setPapel] = useState<Papel>(usuario.role)
@@ -235,8 +254,8 @@ function FormularioEdicao({
     },
   })
 
-  const digitosCnpj = cnpj.replace(/\D/g, '')
-  const valido = digitosCnpj.length === 14
+  const digitosCnpj = cnpj
+  const valido = digitosCnpj.length === 14 && empresa.trim() !== ''
   const souEu = usuario.id === meuId
 
   function enviar(e: FormEvent) {
@@ -245,6 +264,7 @@ function FormularioEdicao({
     mutacao.mutate({
       id: usuario.id,
       cnpj_contratante: digitosCnpj,
+      nome_empresa: empresa.trim(),
       nome_contratante: nome.trim() === '' ? null : nome.trim(),
       role: papel,
       plano,
@@ -268,8 +288,9 @@ function FormularioEdicao({
             inputMode="numeric"
             required
             autoFocus
+            maxLength={14}
             value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+            onChange={(e) => setCnpj(e.target.value.replace(/\D/g, '').slice(0, 14))}
             className="num"
           />
           {digitosCnpj.length !== 14 && (
@@ -277,6 +298,17 @@ function FormularioEdicao({
               O CNPJ precisa ter 14 dígitos ({digitosCnpj.length} informados).
             </p>
           )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="ed-empresa">Empresa contratante</Label>
+          <Input
+            id="ed-empresa"
+            required
+            value={empresa}
+            onChange={(e) => setEmpresa(e.target.value)}
+            placeholder="Razão social ou nome fantasia"
+          />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -467,8 +499,9 @@ function PainelAdministracao() {
           <Tabela>
             <thead>
               <tr>
-                <Th>Contratante</Th>
+                <Th>Empresa</Th>
                 <Th numerica>CNPJ</Th>
+                <Th>Contratante</Th>
                 <Th>Papel</Th>
                 <Th>Plano</Th>
                 <Th>Estado</Th>
@@ -481,9 +514,12 @@ function PainelAdministracao() {
                 const souEu = u.id === meuId
                 return (
                   <Tr key={u.id}>
+                    {/* A EMPRESA encabeca a linha: e ela, com o CNPJ, que
+                        define o recorte de dados do acesso. O e-mail vem logo
+                        abaixo porque e o identificador de login. */}
                     <Td>
                       <p className="font-semibold text-ink">
-                        {u.nome_contratante ?? '—'}
+                        {u.nome_empresa ?? '—'}
                         {souEu && (
                           <span className="ml-2 text-[10px] font-normal text-gold-bright">
                             você
@@ -494,6 +530,8 @@ function PainelAdministracao() {
                     </Td>
 
                     <Td numerica>{fmtCnpj(u.cnpj_contratante)}</Td>
+
+                    <Td>{u.nome_contratante ?? '—'}</Td>
 
                     <Td>
                       <Etiqueta tom={u.role === 'admin' ? 'marca' : 'neutro'}>
