@@ -1,0 +1,119 @@
+# =============================================================================
+# Publicacao do Market Price no GitHub Pages (CLAUDE.md §11)
+#
+# O Pages serve arquivos estaticos e nada mais. Este workflow e a maquina que
+# transforma o repositorio nesses arquivos: instala, compila e entrega o dist/.
+#
+# SOBRE AS CHAVES (§5, §12): as variaveis VITE_* sao lidas pelo Vite no momento
+# do BUILD e ficam embutidas no JavaScript publicado — qualquer visitante
+# consegue le-las. Isso e esperado e correto: a chave publicavel (anon) existe
+# para ser publica, e quem protege os dados e a RLS no Postgres, nao o sigilo
+# dela. A SUPABASE_SERVICE_ROLE_KEY, essa sim, NUNCA entra aqui: ela vive
+# exclusivamente como secret da Edge Function, onde o navegador nao alcanca.
+# =============================================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # Permite republicar sem inventar um commit vazio — util quando o que mudou
+  # foi um secret, e nao o codigo.
+  workflow_dispatch:
+
+# Privilegio minimo: ler o codigo, escrever no Pages e assinar o deploy.
+# `id-token` nao e opcional — a deploy-pages usa OIDC para provar ao Pages que o
+# artefato veio deste workflow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Dois pushes seguidos nao podem publicar ao mesmo tempo: o segundo espera o
+# primeiro. `cancel-in-progress: false` de proposito — abortar um deploy pela
+# metade e o jeito mais rapido de deixar o site num estado inconsistente.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # Reaproveita o cache do npm entre execucoes, chaveado pelo lockfile.
+          cache: npm
+
+      # `ci` e nao `install`: instala exatamente o que esta no package-lock.json
+      # e falha se ele divergir do package.json. O que roda em producao passa a
+      # ser o mesmo conjunto de versoes que foi testado localmente.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Sem isto, um secret ausente produziria um build que compila, publica e
+      # so quebra no navegador do cliente, com o erro escondido no console.
+      # Falhar aqui, com nome do secret na mensagem, custa um minuto; descobrir
+      # pela tela de login em branco custa uma tarde.
+      - name: Conferir secrets do build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          # `if` e nao `[ ... ] && ...`: o passo roda com `bash -e`, onde um teste
+          # que da falso no fim da linha derruba o script — justamente quando o
+          # secret ESTA presente, que e o caso bom.
+          faltando=""
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            faltando="$faltando VITE_SUPABASE_URL"
+          fi
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            faltando="$faltando VITE_SUPABASE_ANON_KEY"
+          fi
+          if [ -n "$faltando" ]; then
+            echo "::error::Secret(s) ausente(s):$faltando"
+            echo "Cadastre em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      # `npm run build` = tsc -b && vite build && cp dist/index.html dist/404.html
+      # A copia para 404.html e o que faz um deep-link (/comparativo digitado na
+      # barra de endereco) funcionar: o Pages nao conhece as rotas do React
+      # Router e devolve o 404, que aqui e a propria aplicacao — ela le a URL e
+      # renderiza a tela certa. O public/CNAME entra no dist pelo Vite, e e ele
+      # que preserva o dominio custom a cada publicacao.
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      # Trava de seguranca, nao formalidade: se algum dia uma chave privilegiada
+      # for parar numa variavel VITE_*, ela sai embutida no bundle. Melhor o
+      # deploy falhar do que a chave ir para o ar.
+      - name: Barrar segredo no bundle
+        run: |
+          if grep -rlE 'service_role|sbp_[A-Za-z0-9]{8,}' dist/; then
+            echo "::error::Credencial privilegiada encontrada no dist/. Deploy abortado."
+            exit 1
+          fi
+          echo "dist/ limpo."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
