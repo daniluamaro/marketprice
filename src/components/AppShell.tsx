@@ -32,9 +32,9 @@ interface ItemNav {
 const RELATORIOS: ItemNav[] = [
   { to: '/', rotulo: 'Visão Geral', Icone: LayoutDashboard },
   { to: '/comparativo', rotulo: 'Comparativo de Preços', Icone: Tags },
-  { to: '/ranking', rotulo: 'Ranking de Estabelecimentos', Icone: BarChart3 },
+  { to: '/ranking', rotulo: 'Análise por Loja', Icone: BarChart3 },
   { to: '/evolucao', rotulo: 'Evolução de Preços', Icone: TrendingUp },
-  { to: '/amplitude', rotulo: 'Amplitude & Oportunidades', Icone: Ruler },
+  { to: '/amplitude', rotulo: 'Amplitude', Icone: Ruler },
   { to: '/categoria', rotulo: 'Análise por Categoria', Icone: LayoutGrid },
   { to: '/geografico', rotulo: 'Análise Geográfica', Icone: MapPin },
   { to: '/dados', rotulo: 'Dados Detalhados', Icone: Table2 },
