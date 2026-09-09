@@ -94,9 +94,22 @@ jobs:
       # Trava de seguranca, nao formalidade: se algum dia uma chave privilegiada
       # for parar numa variavel VITE_*, ela sai embutida no bundle. Melhor o
       # deploy falhar do que a chave ir para o ar.
+      # `sb_secret_` e o formato atual de chave privilegiada do Supabase, `sbp_`
+      # o token pessoal de administracao, `service_role` a chave legada. A chave
+      # publicavel (`sb_publishable_`) NAO entra na lista: ela e publica por
+      # desenho e precisa mesmo estar no bundle.
+      #
+      # Os prefixos exigem material de chave depois deles ({8,}) por um motivo
+      # concreto: a propria supabase-js carrega o literal `"sb_secret_"` dentro
+      # de um startsWith() que classifica chaves. Sem o sufixo obrigatorio, o
+      # guard barraria todo deploy por causa do codigo da biblioteca.
+      #
+      # E uma armadilha, nao um scanner: pega credencial em texto claro. Uma
+      # chave legada codificada em base64 dentro de um JWT nao casa com nada
+      # disto — a defesa contra ela e a regra de nunca por segredo em VITE_*.
       - name: Barrar segredo no bundle
         run: |
-          if grep -rlE 'service_role|sbp_[A-Za-z0-9]{8,}' dist/; then
+          if grep -rlE 'service_role|sb_secret_[A-Za-z0-9_-]{8,}|sbp_[A-Za-z0-9]{8,}' dist/; then
             echo "::error::Credencial privilegiada encontrada no dist/. Deploy abortado."
             exit 1
           fi
