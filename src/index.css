@@ -104,6 +104,40 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /*
+   * Barra de rolagem discreta, para areas que rolam dentro de um painel escuro
+   * (hoje: a navegacao da barra lateral).
+   *
+   * A barra padrao do sistema e clara, larga e desenhada para documento — num
+   * painel escuro ela vira a coisa mais chamativa da tela, exatamente o tipo de
+   * detalhe que denuncia template (§10.8). Aqui ela fica fina e nas cores dos
+   * tokens, entao quando precisa aparecer, aparece como parte do produto.
+   *
+   * Nao usa `scrollbar-width: none`: esconder a barra por completo tiraria a
+   * unica pista de que ha mais conteudo abaixo.
+   */
+  .rolagem-discreta {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+  }
+
+  .rolagem-discreta::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .rolagem-discreta::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .rolagem-discreta::-webkit-scrollbar-thumb {
+    background-color: var(--color-line);
+    border-radius: 999px;
+  }
+
+  .rolagem-discreta:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-ink-3);
+  }
+
   /* Quem pediu menos movimento no sistema operacional recebe menos movimento. */
   @media (prefers-reduced-motion: reduce) {
     *,

@@ -56,7 +56,12 @@ function LinkNav({ item, onNavegar }: { item: ItemNav; onNavegar?: () => void })
       onClick={onNavegar}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-chip border border-transparent px-3 py-2.5',
+          // py-2 e nao py-2.5: o respiro vertical do item e a maior despesa da
+          // coluna — 10 itens x 1px a menos de cada lado economiza 40px, mais do
+          // que qualquer ajuste de fonte conseguiria (13px -> 12.5px poupa 6px
+          // no total inteiro). O alvo de clique fica em ~34px de altura, que
+          // segue confortavel para navegacao de mouse no desktop.
+          'flex items-center gap-3 rounded-chip border border-transparent px-3 py-2',
           'text-[13px] font-medium leading-tight transition-colors duration-150',
           isActive
             ? 'border-gold/25 bg-linear-to-r from-gold/14 to-gold/3 text-gold-bright'
@@ -90,13 +95,20 @@ export function AppShell() {
     <>
       <div>
         <Marca />
-        <p className="mb-6 ml-11 mt-0.5 text-[10.5px] uppercase tracking-[1.2px] text-ink-3">
+        <p className="mb-4 ml-11 mt-0.5 text-[10.5px] uppercase tracking-[1.2px] text-ink-3">
           Inteligência de Preços
         </p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-        <p className="mx-2.5 mb-2 mt-1 text-[10px] uppercase tracking-[1.3px] text-ink-3">
+      {/*
+        `overflow-y-auto` continua aqui de proposito: por mais que a coluna
+        caiba nas alturas comuns, existe janela baixa o bastante para estourar,
+        e nesse caso rolar e melhor do que esconder item de menu. O que mudou e
+        a densidade — a barra deixa de aparecer no caso comum — e a aparencia da
+        barra quando ela precisa aparecer (`rolagem-discreta`).
+      */}
+      <nav className="rolagem-discreta flex flex-1 flex-col gap-0.5 overflow-y-auto">
+        <p className="mx-2.5 mb-1.5 text-[10px] uppercase tracking-[1.3px] text-ink-3">
           Relatórios
         </p>
         {RELATORIOS.map((item) => (
@@ -105,7 +117,7 @@ export function AppShell() {
 
         {itensGestao.length > 0 && (
           <>
-            <p className="mx-2.5 mb-2 mt-5 text-[10px] uppercase tracking-[1.3px] text-ink-3">
+            <p className="mx-2.5 mb-1.5 mt-4 text-[10px] uppercase tracking-[1.3px] text-ink-3">
               Gestão
             </p>
             {itensGestao.map((item) => (
@@ -126,10 +138,10 @@ export function AppShell() {
         A borda superior do rodape ja separa esta area da navegacao; a caixa era
         uma segunda separacao em cima da primeira.
       */}
-      <div className="mt-4 shrink-0 border-t border-line-soft pt-4">
+      <div className="mt-3 shrink-0 border-t border-line-soft pt-3">
         <button
           onClick={() => void sair()}
-          className="flex w-full items-center justify-center gap-2 rounded-chip border border-line bg-elevated px-3 py-2.5 text-[12.5px] text-ink-2 transition-colors duration-150 hover:border-gold/30 hover:text-ink focus-visible:outline-2 focus-visible:outline-gold-bright focus-visible:outline-offset-2"
+          className="flex w-full items-center justify-center gap-2 rounded-chip border border-line bg-elevated px-3 py-2 text-[12.5px] text-ink-2 transition-colors duration-150 hover:border-gold/30 hover:text-ink focus-visible:outline-2 focus-visible:outline-gold-bright focus-visible:outline-offset-2"
         >
           <LogOut className="size-3.5" aria-hidden />
           Sair
