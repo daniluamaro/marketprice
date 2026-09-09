@@ -15,7 +15,6 @@ import {
   type DimensaoFrequencia,
 } from '@/lib/rpc'
 import { chaveCache, useFiltros, type Filtros } from '@/store/filtros'
-import { useAuth } from '@/store/auth'
 import {
   fmtData,
   fmtDataHora,
@@ -132,9 +131,6 @@ function Destaque({
 export default function VisaoGeral() {
   const estreita = useTelaEstreita()
   const filtros = useFiltros()
-  // Contexto do cabecalho e a EMPRESA, nao a pessoa: o recorte de dados
-  // pertence ao CNPJ.
-  const nomeContratante = useAuth((s) => s.perfil?.nome_empresa ?? null)
   const chave = chaveCache(filtros)
 
   const f: Filtros = filtros
@@ -789,17 +785,25 @@ export default function VisaoGeral() {
   )
 
   // ------------------------------------------------------------------ contexto
-  const cidadesTexto =
-    k?.total_cidades != null
-      ? `${fmtInteiro(k.total_cidades)} ${k.total_cidades === 1 ? 'cidade' : 'cidades'}`
+  // A linha responde "que recorte estou vendo": quando, quanto de produto,
+  // quantas lojas e quantas localidades. O nome da empresa saiu daqui — ele ja
+  // esta fixo no rodape da barra lateral, e repeti-lo em toda pagina gastava a
+  // primeira posicao da linha com a unica informacao que nunca muda.
+  const periodoTexto =
+    pontos.length > 0
+      ? `Período: ${fmtData(pontos[0]?.dia)} – ${fmtData(pontos[pontos.length - 1]?.dia)}`
+      : null
+  const produtosTexto =
+    k?.total_produtos != null
+      ? `${fmtInteiro(k.total_produtos)} ${k.total_produtos === 1 ? 'Produto Coletado' : 'Produtos Coletados'}`
       : null
   const lojasTexto =
     k?.total_estabelecimentos != null
-      ? `${fmtInteiro(k.total_estabelecimentos)} estabelecimentos monitorados`
+      ? `${fmtInteiro(k.total_estabelecimentos)} ${k.total_estabelecimentos === 1 ? 'Estabelecimento Monitorado' : 'Estabelecimentos Monitorados'}`
       : null
-  const periodoTexto =
-    pontos.length > 0
-      ? `${fmtData(pontos[0]?.dia)} – ${fmtData(pontos[pontos.length - 1]?.dia)}`
+  const cidadesTexto =
+    k?.total_cidades != null
+      ? `${fmtInteiro(k.total_cidades)} ${k.total_cidades === 1 ? 'Localidade' : 'Localidades'}`
       : null
 
   const precoMedio = num(k?.preco_medio)
@@ -811,7 +815,7 @@ export default function VisaoGeral() {
     <div>
       <CabecalhoPagina
         titulo="Visão Geral"
-        contexto={[nomeContratante, cidadesTexto, periodoTexto, lojasTexto]}
+        contexto={[periodoTexto, produtosTexto, lojasTexto, cidadesTexto]}
         selo={
           k?.ultima_coleta != null ? (
             <TagSecao>
